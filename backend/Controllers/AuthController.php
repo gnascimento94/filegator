@@ -14,6 +14,7 @@ use Filegator\Config\Config;
 use Filegator\Kernel\Request;
 use Filegator\Kernel\Response;
 use Filegator\Services\Auth\AuthInterface;
+use Filegator\Services\Auth\UserLockout;
 use Filegator\Services\Tmpfs\TmpfsInterface;
 use Filegator\Services\Logger\LoggerInterface;
 use Rakit\Validation\Validator;
@@ -27,7 +28,7 @@ class AuthController
         $this->logger = $logger;
     }
 
-    public function login(Request $request, Response $response, AuthInterface $auth, TmpfsInterface $tmpfs, Config $config)
+    public function login(Request $request, Response $response, AuthInterface $auth, TmpfsInterface $tmpfs, Config $config, UserLockout $lockout)
     {
         $username = (string) $request->input('username');
         $password = (string) $request->input('password');
@@ -49,8 +50,19 @@ class AuthController
             return $response->json('Not Allowed', 429);
         }
 
+        // per-username progressive lockout, unknown usernames are tracked too
+        // so the response does not reveal which accounts exist
+        $remaining = $lockout->remaining($username);
+        if ($remaining > 0) {
+            $this->logger->log("Login blocked for {$username} from IP {$ip}, account locked for {$remaining} more seconds");
+
+            return $response->json('Too many failed login attempts, account temporarily locked', 429);
+        }
+
         if ($auth->authenticate($username, $password)) {
             $this->logger->log("Logged in {$username} from IP " . $ip);
+
+            $lockout->clear($username);
 
             return $response->json($auth->user());
         }
@@ -58,6 +70,11 @@ class AuthController
         $this->logger->log("Login failed for {$username} from IP " . $ip);
 
         $tmpfs->write($lockfile, 'x', true);
+
+        $duration = $lockout->registerFailure($username);
+        if ($duration > 0) {
+            $this->logger->log("Account {$username} locked for {$duration} seconds, last failed attempt from IP {$ip}");
+        }
 
         return $response->json('Login failed, please try again', 422);
     }

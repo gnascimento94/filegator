@@ -617,6 +617,28 @@ class FilesTest extends TestCase
         $this->assertFileExists(TEST_REPOSITORY . '/jane/onetwo/three.txt');
     }
 
+    public function testUnzipBombIsRejected()
+    {
+        $username = 'admin@example.com';
+        $this->signIn($username, 'admin123');
+
+        // 5MB of zeros compresses to a few KB, way over the default 100:1 ratio
+        $zip = new \ZipArchive();
+        $zip->open(TEST_REPOSITORY . '/bomb.zip', \ZipArchive::CREATE);
+        $zip->addFromString('bomb/zeros.txt', str_repeat("\0", 5 * 1024 * 1024));
+        $zip->close();
+        mkdir(TEST_REPOSITORY . '/jane');
+
+        $this->sendRequest('POST', '/unzipitem', [
+            'item' => '/bomb.zip',
+            'destination' => '/jane',
+        ]);
+
+        $this->assertUnprocessable();
+        $this->assertResponseJsonHas(['data' => 'Archive exceeds the maximum compression ratio']);
+        $this->assertDirectoryNotExists(TEST_REPOSITORY . '/jane/bomb');
+    }
+
     public function testDownloadMultipleItems()
     {
         $username = 'john@example.com';

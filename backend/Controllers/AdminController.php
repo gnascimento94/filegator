@@ -14,6 +14,8 @@ use Filegator\Kernel\Request;
 use Filegator\Kernel\Response;
 use Filegator\Services\Auth\AuthInterface;
 use Filegator\Services\Auth\User;
+use Filegator\Services\Auth\UserLockout;
+use Filegator\Services\Logger\LoggerInterface;
 use Filegator\Services\Storage\Filesystem;
 use Rakit\Validation\Validator;
 
@@ -119,5 +121,23 @@ class AdminController
         }
 
         return $response->json($this->auth->delete($user));
+    }
+
+    public function listLockedUsers(Response $response, UserLockout $lockout)
+    {
+        return $response->json($lockout->lockedAccounts());
+    }
+
+    public function unlockUser(Request $request, Response $response, UserLockout $lockout, LoggerInterface $logger)
+    {
+        $username = (string) $request->input('username');
+
+        if (! $lockout->clear($username)) {
+            return $response->json('User is not locked', 422);
+        }
+
+        $logger->log("Account {$username} unlocked by admin {$this->auth->user()->getUsername()}");
+
+        return $response->json('Done');
     }
 }

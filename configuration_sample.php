@@ -8,6 +8,13 @@ return [
     'download_inline' => ['pdf'], // download inline in the browser, array of extensions, use * for all. WARNING: Enabling untrusted file types may lead to XSS
     'lockout_attempts' => 5, // max failed login attempts before ip lockout
     'lockout_timeout' => 15, // ip lockout timeout in seconds
+    'user_lockout_tiers' => [ // progressive per-username lockout: failed attempts => lockout in seconds, use [] to disable
+        5 => 60,
+        10 => 5 * 60,
+        15 => 30 * 60,
+    ],
+    'user_lockout_reset' => 24 * 60 * 60, // forget failed attempts of a username after this many seconds without a new failure, 0 = never
+    'user_lockout_path' => __DIR__ . '/private/lockout/', // where per-username lockout state is kept
 
     'frontend_config' => [
         'app_name' => 'FileGator',
@@ -101,7 +108,12 @@ return [
         ],
         'Filegator\Services\Archiver\ArchiverInterface' => [
             'handler' => '\Filegator\Services\Archiver\Adapters\ZipArchiver',
-            'config' => [],
+            'config' => [
+                // zip bomb protection, use 0 to disable a limit
+                'max_uncompressed_size' => 1024 * 1024 * 1024, // 1GB, max total size of extracted files
+                'max_files' => 1000, // max number of entries (files and folders) in an archive
+                'max_compression_ratio' => 100, // max ratio between extracted size and archive size
+            ],
         ],
         'Filegator\Services\Auth\AuthInterface' => [
             'handler' => '\Filegator\Services\Auth\Adapters\JsonFile',

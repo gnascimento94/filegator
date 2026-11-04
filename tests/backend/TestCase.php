@@ -27,6 +27,7 @@ define('TEST_REPOSITORY', TEST_DIR . '/repository');
 define('TEST_ARCHIVE', TEST_DIR . '/testarchive.zip');
 define('TEST_FILE', TEST_DIR . '/sample.txt');
 define('TEST_TMP_PATH', TEST_DIR . '/temp/');
+define('TEST_LOCKOUT_PATH', TEST_DIR . '/lockout/');
 
 /**
  * @internal
@@ -124,6 +125,7 @@ class TestCase extends BaseTestCase
     {
         $this->delTree(TEST_TMP_PATH);
         $this->delTree(TEST_REPOSITORY);
+        $this->delTree(TEST_LOCKOUT_PATH);
 
         mkdir(TEST_TMP_PATH);
         mkdir(TEST_REPOSITORY);

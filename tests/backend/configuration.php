@@ -6,6 +6,7 @@ return [
     'overwrite_on_upload' => false,
     'timezone' => 'UTC', // https://www.php.net/manual/en/timezones.php
     'download_inline' => ['pdf'],
+    'user_lockout_path' => TEST_LOCKOUT_PATH,
 
     'frontend_config' => [
         'app_name' => 'FileGator',

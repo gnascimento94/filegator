@@ -130,20 +130,10 @@ class LDAP implements Service, AuthInterface
             return false;
         }
 
-        // remove (optional) domains from the username
-        if (!empty($this->ldap_userFieldMapping['username_RemoveDomains']) && is_array($this->ldap_userFieldMapping['username_RemoveDomains'])) {
-            $username = str_replace($this->ldap_userFieldMapping['username_RemoveDomains'], '', $username);
-        }
-
-        $search_username = $username;
+        $search_username = $this->removeDomains($username);
         $all_users = $this->getUsers($search_username);
 
-        // add the domain to the username
-        if (!empty($this->ldap_userFieldMapping['username_AddDomain'])) {
-            if (strpos($username, $this->ldap_userFieldMapping['username_AddDomain']) === false) {
-                $username .= $this->ldap_userFieldMapping['username_AddDomain'];
-            }
-        }
+        $username = $this->addDomain($search_username);
 
         foreach ($all_users as &$u) {
             if (strtolower($u['username']) == strtolower($username) && $this->verifyPassword($u['userDN'], $password)) {
@@ -159,6 +149,37 @@ class LDAP implements Service, AuthInterface
         }
 
         return false;
+    }
+
+    /**
+     * The account name a login username resolves to, e.g. "john" and "john@domain"
+     * are the same account when domains are removed/added; used by the login lockout
+     */
+    public function canonicalUsername(string $username): string
+    {
+        return $this->addDomain($this->removeDomains($username));
+    }
+
+    // remove (optional) domains from the username
+    protected function removeDomains(string $username): string
+    {
+        if (!empty($this->ldap_userFieldMapping['username_RemoveDomains']) && is_array($this->ldap_userFieldMapping['username_RemoveDomains'])) {
+            $username = str_replace($this->ldap_userFieldMapping['username_RemoveDomains'], '', $username);
+        }
+
+        return $username;
+    }
+
+    // add the domain to the username
+    protected function addDomain(string $username): string
+    {
+        if (!empty($this->ldap_userFieldMapping['username_AddDomain'])) {
+            if (strpos($username, $this->ldap_userFieldMapping['username_AddDomain']) === false) {
+                $username .= $this->ldap_userFieldMapping['username_AddDomain'];
+            }
+        }
+
+        return $username;
     }
 
     public function forget()

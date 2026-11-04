@@ -165,6 +165,15 @@ class Filesystem implements Service
 
     public function store(string $path, string $name, $resource, bool $overwrite = false): bool
     {
+        return $this->storeFile($path, $name, $resource, $overwrite) !== null;
+    }
+
+    /**
+     * Same as store() but returns the path the file was actually written to
+     * (it may differ from $name when a file with the same name exists), or null on failure
+     */
+    public function storeFile(string $path, string $name, $resource, bool $overwrite = false): ?string
+    {
         $destination = $this->joinPaths($this->applyPathPrefix($path), $name);
 
         while ($this->storage->has($destination)) {
@@ -175,7 +184,11 @@ class Filesystem implements Service
             }
         }
 
-        return $this->storage->putStream($destination, $resource);
+        if (! $this->storage->putStream($destination, $resource)) {
+            return null;
+        }
+
+        return $this->stripPathPrefix($destination);
     }
 
     /**

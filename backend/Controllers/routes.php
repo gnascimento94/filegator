@@ -269,6 +269,26 @@ return [
     ],
     [
         'route' => [
+            'GET', '/listlockedusers', '\Filegator\Controllers\AdminController@listLockedUsers',
+        ],
+        'roles' => [
+            'admin',
+        ],
+        'permissions' => [
+        ],
+    ],
+    [
+        'route' => [
+            'POST', '/unlockuser', '\Filegator\Controllers\AdminController@unlockUser',
+        ],
+        'roles' => [
+            'admin',
+        ],
+        'permissions' => [
+        ],
+    ],
+    [
+        'route' => [
             'POST', '/savecontent', '\Filegator\Controllers\FileController@saveContent',
         ],
         'roles' => [

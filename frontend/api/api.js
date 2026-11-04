@@ -164,6 +164,22 @@ const api = {
         .catch(error => reject(error))
     })
   },
+  listLockedUsers() {
+    return new Promise((resolve, reject) => {
+      axios.get('listlockedusers')
+        .then(res => resolve(res.data.data))
+        .catch(error => reject(error))
+    })
+  },
+  unlockUser(params) {
+    return new Promise((resolve, reject) => {
+      axios.post('unlockuser', {
+        username: params.username,
+      })
+        .then(res => resolve(res.data.data))
+        .catch(error => reject(error))
+    })
+  },
   storeUser(params) {
     return new Promise((resolve, reject) => {
       axios.post('storeuser', {

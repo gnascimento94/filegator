@@ -13,8 +13,10 @@ namespace Filegator\Controllers;
 use Filegator\Config\Config;
 use Filegator\Kernel\Request;
 use Filegator\Kernel\Response;
+use Filegator\Services\Archiver\ArchiveLimitException;
 use Filegator\Services\Archiver\ArchiverInterface;
 use Filegator\Services\Auth\AuthInterface;
+use Filegator\Services\Logger\LoggerInterface;
 use Filegator\Services\Session\SessionStorageInterface as Session;
 use Filegator\Services\Storage\Filesystem;
 
@@ -154,12 +156,19 @@ class FileController
         return $response->json($success ? 'Done' : 'Failed');
     }
 
-    public function unzipItem(Request $request, Response $response, ArchiverInterface $archiver)
+    public function unzipItem(Request $request, Response $response, ArchiverInterface $archiver, LoggerInterface $logger)
     {
         $source = $request->input('item');
         $destination = $request->input('destination', $this->separator);
 
-        $success = $archiver->uncompress($source, $destination, $this->storage);
+        try {
+            $success = $archiver->uncompress($source, $destination, $this->storage);
+        } catch (ArchiveLimitException $e) {
+            $user = $this->auth->user() ?: $this->auth->getGuest();
+            $logger->log("Unzip rejected for {$user->getUsername()} ({$source}): " . $e->getMessage());
+
+            return $response->json($e->getMessage(), 422);
+        }
 
         return $response->json($success ? 'Done' : 'Failed');
     }
